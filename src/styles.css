@@ -1038,7 +1038,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .problem-table { background: #fff; }
 .problem-table th { color: #57534e; background: #faf9f6; border-color: var(--border); }
 .problem-table td { color: #44403c; border-color: #f0eeeb; }
-.topic-pill { color: #8f172d; background: #fbecef; border-color: #f0ccd3; }
+.topic-pill { color: #8f172d; background: #f0fdf4; border-color: #f0ccd3; }
 .problem-table tr:hover td { background: #fcfbf9; }
 .problem-table tr.is-completed td { background: #f0fdf4; }
 .completion-check { color: #57534e; border-color: #d6d3d1; background: #fff; }
