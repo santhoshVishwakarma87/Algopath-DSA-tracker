@@ -315,6 +315,13 @@ export default function App() {
   const [syncHeartbeat, setSyncHeartbeat] = useState(0);
   const [networkRevision, setNetworkRevision] = useState(0);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const logoutInProgressRef = useRef(false);
+  const logoutDialogRef = useRef(null);
+  const logoutCancelRef = useRef(null);
+  const logoutConfirmRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const [completed, setCompleted] = useState(readProgress);
   const [practiceDates, setPracticeDates] = useState(readPracticeDates);
   const [completionDates, setCompletionDates] = useState(readCompletionDates);
@@ -346,6 +353,49 @@ export default function App() {
   const progressRef = useRef(currentProgress);
   progressRef.current = currentProgress;
   const syncedFingerprintRef = useRef(null);
+
+  useEffect(() => {
+    if (!logoutDialogOpen) return undefined;
+
+    previousFocusRef.current = previousFocusRef.current || document.activeElement;
+    logoutCancelRef.current?.focus();
+
+    function handleDialogKeyDown(event) {
+      if (event.key === "Escape" && !logoutInProgressRef.current) {
+        event.preventDefault();
+        setLogoutDialogOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusableElements = [logoutCancelRef.current, logoutConfirmRef.current]
+        .filter((element) => element && !element.disabled);
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements.at(-1);
+      if (!firstElement || !lastElement) {
+        event.preventDefault();
+        logoutDialogRef.current?.focus();
+        return;
+      }
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleDialogKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleDialogKeyDown);
+      if (previousFocusRef.current instanceof HTMLElement && previousFocusRef.current.isConnected) {
+        previousFocusRef.current.focus();
+      }
+      previousFocusRef.current = null;
+    };
+  }, [logoutDialogOpen]);
 
   useEffect(() => onAuthStateChanged(auth, (user) => {
     setAuthUser(user);
@@ -780,15 +830,29 @@ export default function App() {
     }
   }
 
+  function requestLogout(event) {
+    const trigger = event.currentTarget;
+    previousFocusRef.current = trigger.closest(".mobile-profile-menu")
+      ? trigger.closest(".mobile-profile")?.querySelector(".mobile-profile-avatar")
+      : trigger;
+    setLogoutError("");
+    setProfileMenuOpen(false);
+    setLogoutDialogOpen(true);
+  }
+
   async function logout() {
+    if (logoutInProgressRef.current) return;
+    logoutInProgressRef.current = true;
     setLoggingOut(true);
-    setSyncError("");
+    setLogoutError("");
     try {
       await signOut(auth);
+      setLogoutDialogOpen(false);
     } catch (error) {
-      setSyncError(error.message);
-      setSyncStatus("Sync failed");
+      console.error("[Firebase auth] Sign-out failed.", error);
+      setLogoutError("We couldn't log you out. Please try again.");
     } finally {
+      logoutInProgressRef.current = false;
       setLoggingOut(false);
     }
   }
@@ -826,7 +890,7 @@ export default function App() {
           <div className="profile-row">
             <div className="avatar">SV</div>
             <div className="profile-copy"><strong>{profileName}</strong><span>{authUser.email}</span></div>
-            <button className="logout-button" type="button" onClick={logout} disabled={loggingOut} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
+            <button className="logout-button" type="button" onClick={requestLogout} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button>
           </div>
         </div>
       </aside>
@@ -844,7 +908,7 @@ export default function App() {
               {syncConflict ? "Sync conflict preserved locally" : syncStatus}
             </span>
             <span className="account-email">{authUser.email}</span>
-            <button className="topbar-logout" type="button" onClick={logout} disabled={loggingOut} aria-label="Sign out" title="Sign out"><LogOut size={16} /></button>
+            <button className="topbar-logout" type="button" onClick={requestLogout} aria-label="Sign out" title="Sign out"><LogOut size={16} /></button>
             <button className="help-button" title="Help" aria-label="Help"><CircleHelp size={19} /></button>
             <div className="mobile-profile">
               <button
@@ -860,7 +924,7 @@ export default function App() {
               {profileMenuOpen && <div className="mobile-profile-menu" id="mobile-profile-menu">
                 <strong>{profileName}</strong>
                 <span>{authUser.email}</span>
-                <button type="button" onClick={logout} disabled={loggingOut}>
+                <button type="button" onClick={requestLogout}>
                   <LogOut size={15} /> Sign out
                 </button>
               </div>}
@@ -1105,6 +1169,50 @@ export default function App() {
         <button className={activeView === "Topics" ? "mobile-nav-active" : ""} onClick={() => chooseView("Topics")}><BookOpen size={19} /><span>Topics</span></button>
         <button className={activeView === "Completed" ? "mobile-nav-active" : ""} onClick={() => chooseView("Completed")}><ListChecks size={19} /><span>Done</span></button>
       </nav>
+
+      {logoutDialogOpen && <div
+        className="logout-dialog-backdrop"
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !logoutInProgressRef.current) {
+            setLogoutDialogOpen(false);
+          }
+        }}
+      >
+        <section
+          className="logout-dialog"
+          ref={logoutDialogRef}
+          tabIndex="-1"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="logout-dialog-title"
+          aria-describedby="logout-dialog-message"
+        >
+          <div className="logout-dialog-icon"><LogOut size={20} aria-hidden="true" /></div>
+          <h2 id="logout-dialog-title">Confirm Logout</h2>
+          <p id="logout-dialog-message">Are you sure you want to log out of AlgoPath?</p>
+          {logoutError && <p className="logout-dialog-error" role="alert">{logoutError}</p>}
+          <div className="logout-dialog-actions">
+            <button
+              className="logout-dialog-cancel"
+              type="button"
+              onClick={() => setLogoutDialogOpen(false)}
+              disabled={loggingOut}
+              ref={logoutCancelRef}
+            >
+              Cancel
+            </button>
+            <button
+              className="logout-dialog-confirm"
+              type="button"
+              onClick={logout}
+              disabled={loggingOut}
+              ref={logoutConfirmRef}
+            >
+              {loggingOut ? "Logging out…" : "Confirm Logout"}
+            </button>
+          </div>
+        </section>
+      </div>}
     </div>
   );
 }
