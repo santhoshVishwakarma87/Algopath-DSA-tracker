@@ -6,7 +6,7 @@ A responsive React application for tracking Data Structures and Algorithms pract
 
 - Dashboard with solved count and completion percentage
 - Advanced Analytics dashboard with completion, timer, weekly, topic, streak, target, and recent-activity insights
-- Curated collection of 138 LeetCode problems across 19 DSA topics
+- Curated collection of 450 LeetCode problems across 22 DSA topics
 - Topic progress cards with an option to expand the full topic list
 - Search by problem title
 - Topic and difficulty filters
