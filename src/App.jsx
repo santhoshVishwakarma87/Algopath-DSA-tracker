@@ -1159,7 +1159,6 @@ export default function App() {
           <p className="footer-tagline">Crafted with precision by SPYRA.</p>
           <p className="footer-description">Building digital experiences that move you forward.</p>
           <p className="footer-copyright">© {new Date().getFullYear()} SPYRA. All rights reserved.</p>
-          <span className="footer-storage"><span className="footer-status" /> Data stored in this browser</span>
         </footer>
       </main>
 
