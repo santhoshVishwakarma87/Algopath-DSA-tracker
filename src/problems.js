@@ -1,3 +1,5 @@
+const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
+
 export const initialProblems = [
   { id: 1, title: "Two Sum", topic: "Arrays", difficulty: "Easy", url: "https://leetcode.com/problems/two-sum/" },
   { id: 2, title: "Best Time to Buy and Sell Stock", topic: "Arrays", difficulty: "Easy", url: "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/" },
@@ -249,4 +251,6 @@ export const initialProblems = [
   { id: 248, title: "Maximum Length of Repeated Subarray", topic: "Dynamic Programming", difficulty: "Medium", url: "https://leetcode.com/problems/maximum-length-of-repeated-subarray/" },
   { id: 249, title: "Find the Winner of the Circular Game", topic: "Math", difficulty: "Medium", url: "https://leetcode.com/problems/find-the-winner-of-the-circular-game/" },
   { id: 250, title: "Kth Factor of n", topic: "Math", difficulty: "Medium", url: "https://leetcode.com/problems/the-kth-factor-of-n/" }
-];
+].sort((a, b) => a.topic.localeCompare(b.topic)
+  || difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]
+  || a.id - b.id);
