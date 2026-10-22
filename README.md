@@ -7,7 +7,7 @@ AlgoPath is a responsive web application for organizing Data Structures and Algo
 
 ## Features
 
-- **Problem collection:** Browse 450 curated LeetCode problems across 22 topics, with difficulty labels and direct links to LeetCode.
+- **Problem collection:** Browse 700 curated LeetCode problems across 22 topics, including 250 additional interview-focused problems, with difficulty labels and direct links to LeetCode.
 - **Search and filters:** Search by problem title and filter by topic or difficulty. Browse the dashboard, topic view, or completed-problems view.
 - **Progress tracking:** Mark problems complete or incomplete and see overall and difficulty-level progress.
 - **Daily targets and streaks:** Set a positive whole-number daily target (default: 5), see today's completion progress, and track current and best practice streaks from recorded activity.
