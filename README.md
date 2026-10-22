@@ -1,80 +1,145 @@
 # AlgoPath DSA Tracker
 
-A responsive React application for tracking Data Structures and Algorithms practice.
+AlgoPath is a responsive web application for organizing Data Structures and Algorithms practice. It brings a curated LeetCode problem collection, progress tracking, study timers, daily goals, and activity analytics into one workspace. Sign in to sync progress with Firebase, or use the app's local browser storage when cloud sync is unavailable.
+
+- **Live app:** [algopath-dsa-tracker.vercel.app](https://algopath-dsa-tracker.vercel.app)
+- **Source code:** [santhoshVishwakarma87/Algopath-DSA-tracker](https://github.com/santhoshVishwakarma87/Algopath-DSA-tracker)
 
 ## Features
 
-- Dashboard with solved count and completion percentage
-- Advanced Analytics dashboard with completion, timer, weekly, topic, streak, target, and recent-activity insights
-- Curated collection of 450 LeetCode problems across 22 DSA topics
-- Topic progress cards with an option to expand the full topic list
-- Search by problem title
-- Topic and difficulty filters
-- Mark problems completed or incomplete
-- Daily and best practice streaks, recorded when a problem is completed
-- Per-problem study timers with pause, resume, and locally saved time
-- Progress saved in browser `localStorage`
-- Firebase email/password and Google authentication
-- Per-user Firestore synchronization with a local-first migration
-- Responsive desktop, tablet, and mobile layouts
-- Direct links to the corresponding LeetCode problem pages
+- **Problem collection:** Browse 450 curated LeetCode problems across 22 topics, with difficulty labels and direct links to LeetCode.
+- **Search and filters:** Search by problem title and filter by topic or difficulty. Browse the dashboard, topic view, or completed-problems view.
+- **Progress tracking:** Mark problems complete or incomplete and see overall and difficulty-level progress.
+- **Daily targets and streaks:** Set a positive whole-number daily target (default: 5), see today's completion progress, and track current and best practice streaks from recorded activity.
+- **Per-problem study timer:** Start, pause, resume, and switch timers. Timer totals are saved locally; an active timer is restored as paused after a page refresh so time away is not counted.
+- **Analytics dashboard:** View completion totals, study time, recent activity, weekly comparisons, daily activity, topic breakdown, streaks, and a 12-month completion calendar.
+- **Authentication:** Sign in with Google or email and password. Email/password accounts can be created in the app.
+- **Cloud synchronization:** Signed-in progress is stored per Firebase user in Cloud Firestore. Local progress can be migrated on sign-in, and local storage remains available if cloud sync is unavailable.
+- **Responsive interface:** Layouts adapt to desktop, tablet, and mobile screens, using the Cherry + Alabaster visual theme.
 
-## Run locally
+> **Scope note:** The current application does not implement problem notes or revision tracking. Analytics and historical activity are based on recorded completion and timer data; older completion statuses without dates are not backfilled with assumed history.
 
-1. Install the current Node.js LTS version from https://nodejs.org/
-2. Unzip this project.
-3. Open the `dsa-tracker` folder in VS Code.
-4. Open Terminal in VS Code and run:
+## Screenshots
 
-   ```bash
-   npm install
-   npm run dev
-   ```
+Screenshots are not currently included in the repository. To add them, save captures of the app under `screenshots/` and link them here, for example:
 
-5. Open the local URL shown by Vite, usually http://localhost:5173.
+```md
+![AlgoPath dashboard](./screenshots/dashboard.png)
+```
 
-## Build for deployment
+## Technology stack
+
+- **UI:** React and JavaScript (ES modules)
+- **Build and development server:** Vite
+- **Authentication and data:** Firebase Authentication and Cloud Firestore
+- **Browser persistence:** LocalStorage
+- **Icons:** Lucide React
+- **Fonts:** DM Sans and Space Grotesk, loaded from Google Fonts
+- **Hosting:** Vercel (live deployment)
+
+## Architecture overview
+
+```text
+src/
+├── main.jsx                 # React entry point and stylesheet import
+├── App.jsx                  # Dashboard, navigation, local state, timers, and Firestore sync
+├── AuthScreen.jsx           # Google and email/password authentication UI
+├── AnalyticsDashboard.jsx   # Analytics presentation
+├── analytics.js             # Activity, streak, timer, and topic calculations
+├── problems.js              # Curated problem data
+├── progressSync.js          # Progress snapshots, local/cloud merge, and conflict handling
+├── firebase.js              # Firebase app, Authentication, Firestore, and Analytics setup
+└── styles.css               # Responsive Cherry + Alabaster interface styles
+```
+
+Progress is kept in the browser's LocalStorage and, after authentication, synchronized to the signed-in user's Firestore document at `users/{uid}/tracker/progress`. The browser app accesses only the signed-in user's document; the repository's [`firestore.rules`](./firestore.rules) restricts reads and writes to a matching authenticated UID. Firebase Analytics is initialized when supported by the browser.
+
+The local progress model records completed states, practice dates, completion dates and events, the daily target, per-problem timer totals, dated timer totals, and the active timer session. During initial synchronization, local and cloud data are merged: completion and practice dates are combined, cloud completion states and daily target take precedence in conflicts, and the greater timer total is retained. Conflicting local data is preserved in a per-user LocalStorage backup. Existing local progress keys are not deleted.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js (current LTS recommended)
+- npm
+- A Firebase project configured for the application (see [Firebase setup](#firebase-setup))
+
+### Install and run locally
+
+```bash
+git clone https://github.com/santhoshVishwakarma87/Algopath-DSA-tracker.git
+cd Algopath-DSA-tracker
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite, typically <http://localhost:5173>.
+
+Create a production build and serve it locally with:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-The production output is written to `dist/`.
+Vite writes the production files to `dist/`.
 
-## Data note
+## Environment configuration
 
-The curated problem collection uses LeetCode problem titles, difficulty levels, and problem links. Each problem is grouped under a primary practice topic to make the collection easier to browse.
+There are currently **no required environment variables**: the application does not read `import.meta.env` or `VITE_*` variables. Firebase's web-app configuration is currently defined in [`src/firebase.js`](./src/firebase.js), so no `.env` file is needed to run this version.
 
-Progress is saved in browser `localStorage` and, after signing in, synchronized to `users/{uid}/tracker/progress` in Cloud Firestore. This reuses the existing `auth` and `db` exports from `src/firebase.js`; it does not initialize another Firebase app. Existing local progress is migrated without deleting its original localStorage keys. If local and cloud fields conflict during the initial merge, a copy of the local snapshot is kept under `dsa-tracker-conflict-backup-v1-{uid}` in localStorage; the cloud value wins for conflicting completion statuses and daily targets, and the greater recorded duration wins for conflicting problem timers. Completion dates and practice dates are combined.
-
-Practice and completion dates use the device's local calendar and are recorded when a problem is marked complete. Existing completed problems are not assigned dates retroactively. Analytics streaks and the 12-month contribution calendar use only recorded activity; completed status is never used to fabricate history. New completion transitions also record an exact ISO timestamp and local `YYYY-MM-DD` date in `completionEvents`, saved under `dsa-tracker-completion-events-v1` in localStorage and in the existing `users/{uid}/tracker/progress` Firestore document. Repeated synchronization merges these events by stable event ID. Date-only history from before this change remains usable, but no exact timestamp is inferred for it. Unmarking a problem changes its current status without erasing past completion history. The dashboard's daily problem target defaults to 5, can be changed to a preset or custom whole number, and is saved in browser storage. Today's target total counts distinct problems currently marked complete today.
-
-Study time is stored separately per problem in the current browser. A running session is safely restored as paused after a refresh, so time away from the app is not counted. Analytics retains the existing per-problem lifetime totals and records date-based timer totals in `studyData.dailyTotals` as active timer time is paused, stopped, switched, or synchronized. Older lifetime totals are not assigned to dates retroactively; today/week timer metrics and chart tooltips only use reliable date-bucket records.
+When using a different Firebase project, update the web-app configuration in `src/firebase.js` to that project's Firebase web configuration. Firebase web configuration is used by client applications and is not a substitute for access control; do not put Firebase Admin SDK credentials, service-account keys, or other server secrets in the frontend or repository. Protect Firestore data with Authentication and restrictive Firestore rules.
 
 ## Firebase setup
 
-The application reuses the Firebase project configuration in [`src/firebase.js`](./src/firebase.js). The Firebase web configuration is intended for client apps; do not add Admin SDK credentials or service-account keys to this project.
+For the Firebase project configured by the application:
 
-In Firebase Console, for the configured project:
+1. In **Firebase Console → Authentication → Sign-in method**, enable **Google** and **Email/Password**.
+2. In **Authentication → Settings → Authorized domains**, add the hostnames used to access the app. `localhost` is normally available for local development; add your deployed Vercel hostname as well.
+3. Create or enable **Cloud Firestore**.
+4. In **Firestore Database → Rules**, publish the rules from [`firestore.rules`](./firestore.rules). These rules allow an authenticated user to read and write only `users/{uid}/tracker/progress` when `{uid}` matches their Firebase Authentication UID. All other paths remain denied by default.
 
-1. In **Authentication → Sign-in method**, enable **Email/Password** and **Google**.
-2. In **Authentication → Settings → Authorized domains**, add the hostnames used to run/deploy the app (localhost is normally preconfigured for local development).
-3. Create or enable **Cloud Firestore** in the project.
-4. Open **Firestore Database → Rules**, replace the rules with the contents of [`firestore.rules`](./firestore.rules), and click **Publish**. The tracker reads and writes the single document `users/{uid}/tracker/progress`; the rules permit only a signed-in user whose Firebase UID matches `{uid}` to access that document. All other paths remain denied by default. Never use public read/write rules.
+The rules file is not deployed automatically by `npm run build` or by the frontend deployment. Do not replace them with public read/write rules.
 
-The rules file is provided in the repository but is not deployed automatically. No Firebase Console settings or live sign-in/cloud operations have been verified by the local build.
+### Verify authentication and sync
 
-## Test authentication and synchronization
+1. Start the app with `npm run dev`.
+2. Create an email/password account or use **Continue with Google**.
+3. Complete a problem, change the daily target, or record time with a study timer.
+4. Wait for the sync status to report **Synced**. In Firebase Console, inspect **Firestore Database → Data → users → {your UID} → tracker → progress**.
+5. Refresh the app or sign in to the same account in another browser to check that cloud progress is restored.
 
-1. Run `npm run dev`, then create an account with email/password or use **Continue with Google**. Email/password registration requires a password of at least 6 characters.
-2. Confirm the dashboard appears after authentication, and the account email and sync status are visible.
-3. Mark a problem complete, change the daily target, and record some study time. Wait for the status to show **Synced**.
-4. In Firebase Console, open **Firestore Database → Data → users → {your Firebase UID} → tracker → progress**. Confirm the document exists and its `completed`, `completionDates`, `dailyTarget`, and `studyData` fields reflect your changes. A successful production build alone does not verify a live Firebase write.
-5. Refresh the page and confirm progress is restored. Sign in on another browser/device with the same account to check cloud synchronization.
-6. Sign out and confirm the sign-in screen appears. Existing localStorage data is retained.
-7. Test a different account and confirm its progress is isolated to its UID.
+## Deployment
 
-This tracker currently has no problem-notes or revision-history features or corresponding localStorage fields; those are therefore not part of its current synchronized data. The current synced fields are completed-problem states, practice dates, per-problem completion dates, daily target, per-problem study totals, date-based timer totals, and the active timer session.
+The live application is hosted at [algopath-dsa-tracker.vercel.app](https://algopath-dsa-tracker.vercel.app). To deploy your own copy:
 
-The production build can be checked with `npm run build`.
+1. Import the GitHub repository into Vercel.
+2. Use the Vite defaults: build command `npm run build` and output directory `dist`.
+3. No Vercel environment variables are required by the current source.
+4. Add the deployment hostname to Firebase Authentication's authorized domains and make sure the intended Firestore rules are published.
+
+You can also deploy the generated `dist/` directory to another static host that supports a Vite single-page application.
+
+## Troubleshooting
+
+| Issue | What to check |
+| --- | --- |
+| `npm install` or Vite fails to start | Confirm Node.js and npm are installed, then run `npm install` from the project root. |
+| Google sign-in is blocked or reports `auth/unauthorized-domain` | Allow pop-ups for the site and add its hostname under **Firebase Authentication → Settings → Authorized domains**. |
+| Email/password sign-in fails | Ensure **Email/Password** is enabled in Firebase Authentication. New passwords must contain at least six characters. |
+| Firestore sync reports `permission-denied` | Publish the repository's [`firestore.rules`](./firestore.rules), verify Cloud Firestore is enabled, and confirm the signed-in user's UID matches the document path. |
+| Sign-in or Firestore requests fail with network errors | Check the browser's network connection, browser console, and Firebase project configuration in [`src/firebase.js`](./src/firebase.js). |
+| Progress appears only in one browser | LocalStorage is browser-specific. Sign in to the same Firebase account in both browsers and confirm sync reaches **Synced**. |
+| Timer continues after refreshing | A running timer is deliberately restored as paused. Resume it in the app to continue counting active study time. |
+| Older completed problems do not appear in historical activity | Completion dates are recorded when a problem is marked complete. The app does not infer dates for older completion statuses. |
+
+## Data and analytics notes
+
+- Practice and completion dates use the device's local calendar. Marking a problem complete records activity; unmarking it changes current completion status but does not erase the recorded historical completion.
+- Today's target count is the number of distinct problems currently marked complete today.
+- Lifetime timer totals and dated timer totals are distinct. Older lifetime totals are not assigned to dates retroactively, so date-based analytics only use reliable recorded timer activity.
+- Authentication is required to enter the tracker. LocalStorage provides browser-local persistence and a fallback when cloud synchronization is unavailable; Firestore synchronization requires a working Firebase connection.
+
+## License
+
+See [`LICENSE`](./LICENSE).
