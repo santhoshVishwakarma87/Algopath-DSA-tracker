@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://algopath-dsa-tracker.vercel.app/sitemap.xml
