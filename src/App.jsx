@@ -25,10 +25,14 @@ const STUDY_TIME_STORAGE_KEY = "dsa-tracker-study-time-v1";
 const PROGRESS_COLLECTION = "users";
 const PROBLEMS_PER_BATCH = 20;
 const topics = ["All topics", ...new Set(initialProblems.map((p) => p.topic))];
+const topicProblemCounts = initialProblems.reduce((counts, problem) => {
+  counts[problem.topic] = (counts[problem.topic] || 0) + 1;
+  return counts;
+}, {});
 const learningGoals = [
-  { title: "Master core patterns", detail: "Build strong foundations in arrays, strings, and hashmaps.", icon: Target },
-  { title: "Grow problem-solving confidence", detail: "Take on medium problems and learn to recognize patterns.", icon: TrendingUp },
-  { title: "Make steady progress", detail: "Practice one problem at a time and revisit what you learn.", icon: Flame }
+  { step: "01", focus: "BUILD YOUR BASE", title: "Master the core patterns", detail: "Get comfortable with arrays, strings, and hashmaps. Strong foundations make harder problems feel simpler.", nudge: "Start with the fundamentals", icon: Target },
+  { step: "02", focus: "LEVEL UP", title: "Grow your confidence", detail: "Take on medium problems, spot familiar patterns, and trust yourself to work through the tough parts.", nudge: "Challenge yourself a little more", icon: TrendingUp },
+  { step: "03", focus: "STAY IN MOTION", title: "Keep showing up", detail: "One focused problem a day adds up. Revisit what you learn and let consistency do its thing.", nudge: "Progress over perfection", icon: Flame }
 ];
 
 function getProgressDocument(uid) {
@@ -68,6 +72,15 @@ function getLocalDateKey(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getTimeOfDay(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 5) return "night";
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  if (hour < 21) return "evening";
+  return "night";
 }
 
 function isDateKey(value) {
@@ -331,6 +344,7 @@ export default function App() {
   const [studyData, setStudyData] = useState(readStudyTime);
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [today, setToday] = useState(() => getLocalDateKey());
+  const [timeOfDay, setTimeOfDay] = useState(() => getTimeOfDay());
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("All topics");
   const [difficulty, setDifficulty] = useState("All levels");
@@ -667,6 +681,16 @@ export default function App() {
   }, [today]);
 
   useEffect(() => {
+    const updateTimeOfDay = () => setTimeOfDay(getTimeOfDay());
+    const interval = window.setInterval(updateTimeOfDay, 60_000);
+    document.addEventListener("visibilitychange", updateTimeOfDay);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", updateTimeOfDay);
+    };
+  }, []);
+
+  useEffect(() => {
     setVisibleProblemCount(PROBLEMS_PER_BATCH);
   }, [query, topic, difficulty, activeView]);
 
@@ -674,6 +698,7 @@ export default function App() {
     () => initialProblems.map((problem) => ({ ...problem, completed: Boolean(completed[problem.id]) })),
     [completed]
   );
+  const selectedTopicCount = topic === "All topics" ? initialProblems.length : topicProblemCounts[topic] || 0;
   const solvedCount = problems.filter((p) => p.completed).length;
   const progress = problems.length ? Math.round((solvedCount / problems.length) * 100) : 0;
   const easySolved = problems.filter((p) => p.completed && p.difficulty === "Easy").length;
@@ -939,21 +964,38 @@ export default function App() {
           <section className="welcome-row">
             <div>
               <div className="eyebrow"><span className="eyebrow-line" /> YOUR DSA JOURNEY</div>
-              <h1>{activeView === "Analytics" ? "Your progress, in focus." : activeView === "Completed" ? "Your wins, in one place." : activeView === "Topics" ? "Explore by topic." : `Welcome back, ${profileName.split(" ")[0]}.`}</h1>
-              <p className="page-subtitle">{activeView === "Analytics" ? "Explore your study patterns, celebrate consistency, and find your next focus." : "One problem at a time. Track your progress, spot your gaps, keep moving."}</p>
+              <h1>{activeView === "Analytics" ? "Your progress, in focus." : activeView === "Completed" ? "Your wins, in one place." : activeView === "Topics" ? "Explore by topic." : `Good ${timeOfDay}, ${profileName.split(" ")[0]}.`}</h1>
+              <p className="page-subtitle">{activeView === "Analytics" ? "Explore your study patterns, celebrate consistency, and find your next focus." : activeView === "Completed" ? "One problem at a time. Track your progress, spot your gaps, keep moving." : activeView === "Topics" ? "One problem at a time. Track your progress, spot your gaps, keep moving." : timeOfDay === "morning" ? "Start your day with a fresh problem and build momentum." : timeOfDay === "afternoon" ? "Keep your momentum going—one problem at a time." : timeOfDay === "evening" ? "Make a little progress tonight and finish the day strong." : "A quiet moment is a great time to sharpen your problem-solving skills."}</p>
             </div>
             <div className="date-chip"><Activity size={16} /> Your practice space</div>
           </section>
 
           {activeView === "Dashboard" && <section className="goals-section" aria-labelledby="learning-goals-heading">
+            <div className="goals-motivation">
+              <div className="goals-motivation-copy">
+                <span className="goals-kicker"><Sparkles size={13} aria-hidden="true" /> YOUR NEXT LEVEL</span>
+                <h2>Small steps. Serious progress.</h2>
+                <p>Every problem you solve is proof you’re getting better. Keep going—your future self will thank you.</p>
+              </div>
+              <div className="goals-solved-badge" aria-label={`${solvedCount} problems solved`}>
+                <span className="goals-solved-number">{solvedCount}</span>
+                <span>PROBLEMS<br /><strong>SOLVED</strong></span>
+              </div>
+            </div>
             <div className="section-heading goals-heading">
-              <div><h2 id="learning-goals-heading">Your learning goals</h2><p>A few milestones to guide your DSA journey.</p></div>
+              <div><h2 id="learning-goals-heading">Your game plan</h2><p>Pick a focus, take it one problem at a time, and keep building.</p></div>
+              <span className="goals-heading-note"><Flame size={14} aria-hidden="true" /> You’ve got this</span>
             </div>
             <div className="learning-goals-grid">
-              {learningGoals.map(({ title, detail, icon: Icon }) => (
-                <article className="learning-goal" key={title}>
-                  <span className="goal-icon"><Icon size={17} /></span>
-                  <div><h3>{title}</h3><p>{detail}</p></div>
+              {learningGoals.map(({ step, focus, title, detail, nudge, icon: Icon }) => (
+                <article className="learning-goal" key={step}>
+                  <div className="learning-goal-top">
+                    <span className="learning-goal-focus">{step} <span>{focus}</span></span>
+                    <span className="goal-icon"><Icon size={17} aria-hidden="true" /></span>
+                  </div>
+                  <h3>{title}</h3>
+                  <p>{detail}</p>
+                  <div className="learning-goal-nudge"><span />{nudge}</div>
                 </article>
               ))}
             </div>
@@ -1073,6 +1115,7 @@ export default function App() {
                   <button
                     className={`topic-card${activeView === "Topics" && topic === t ? " selected" : ""}`}
                     key={t}
+                    style={{ "--topic-progress": `${topicPercent}%` }}
                     aria-pressed={topic === t}
                     onClick={() => { setTopic(t); setActiveView("Topics"); document.getElementById("problem-list")?.scrollIntoView({ behavior: "smooth" }); }}
                   >
@@ -1109,16 +1152,34 @@ export default function App() {
             <div className="filter-bar">
               <label className="search-box"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search problems..." aria-label="Search problems" />{query && <button onClick={() => setQuery("")} aria-label="Clear search" className="clear-search"><X size={14} /></button>}</label>
               <div className="filter-controls">
-                <label className="select-wrap"><select aria-label="Filter by topic" value={topic} onChange={(e) => setTopic(e.target.value)}>{topics.map((t) => <option key={t}>{t}</option>)}</select><ChevronDown size={15} /></label>
-                <label className="select-wrap"><select aria-label="Filter by difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}><option>All levels</option><option>Easy</option><option>Medium</option><option>Hard</option></select><ChevronDown size={15} /></label>
+                <label className="select-wrap topic-filter-wrap">
+                  <span className="topic-filter-icon"><BookOpen size={15} aria-hidden="true" /></span>
+                  <span className="topic-filter-copy">
+                    <span className="topic-filter-label">TOPIC</span>
+                    <select aria-label="Filter by topic" value={topic} onChange={(e) => setTopic(e.target.value)}>
+                      {topics.map((t) => <option key={t} value={t}>{t} ({t === "All topics" ? initialProblems.length : topicProblemCounts[t]})</option>)}
+                    </select>
+                  </span>
+                  <ChevronDown size={15} aria-hidden="true" />
+                </label>
+                <label className="select-wrap difficulty-filter-wrap">
+                  <span className="topic-filter-icon"><Target size={15} aria-hidden="true" /></span>
+                  <span className="topic-filter-copy">
+                    <span className="topic-filter-label">DIFFICULTY</span>
+                    <select aria-label="Filter by difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                      <option>All levels</option><option>Easy</option><option>Medium</option><option>Hard</option>
+                    </select>
+                  </span>
+                  <ChevronDown size={15} aria-hidden="true" />
+                </label>
                 <button className="filter-reset" onClick={() => { setQuery(""); setTopic("All topics"); setDifficulty("All levels"); setActiveView("Dashboard"); }}>Reset</button>
               </div>
               <button className="mobile-filter-toggle" onClick={() => setShowMobileFilters(!showMobileFilters)}><Settings2 size={16} /> Filters</button>
             </div>
 
             {showMobileFilters && <div className="mobile-filters">
-              <label>Topic<select value={topic} onChange={(e) => setTopic(e.target.value)}>{topics.map((t) => <option key={t}>{t}</option>)}</select></label>
-              <label>Difficulty<select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}><option>All levels</option><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
+              <label className="mobile-topic-filter"><span>Topic <small>{selectedTopicCount} problems</small></span><select aria-label="Filter by topic" value={topic} onChange={(e) => setTopic(e.target.value)}>{topics.map((t) => <option key={t} value={t}>{t} ({t === "All topics" ? initialProblems.length : topicProblemCounts[t]})</option>)}</select></label>
+              <label className="mobile-difficulty-filter">Difficulty<select aria-label="Filter by difficulty" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}><option>All levels</option><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
             </div>}
 
             <div className="problem-table-wrap">
