@@ -129,6 +129,7 @@ h2 { font: 600 17px 'Space Grotesk', sans-serif; letter-spacing: -.3px; margin-b
 .topic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .topic-card { min-width: 0; text-align: left; background: #11182a; border: 1px solid #242d43; border-radius: 12px; padding: 15px; color: var(--text); transition: border-color .18s, transform .18s; }
 .topic-card:hover { border-color: #554879; transform: translateY(-1px); }
+.topic-card.selected { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(180, 35, 58, .12), var(--shadow); }
 .topic-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; margin-bottom: 14px; }
 .topic-color-0 { color: #b7a6ff; background: #2a2346; }.topic-color-1 { color: #74dcb5; background: #183a35; }.topic-color-2 { color: #ffbd79; background: #3b2c26; }.topic-color-3 { color: #86b8ff; background: #1c3049; }.topic-color-4 { color: #ff9fc3; background: #3c2538; }.topic-color-5 { color: #9fdbef; background: #1b3542; }
 .topic-card-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }

@@ -1049,25 +1049,33 @@ export default function App() {
             </form>
           </section>}
 
-          {activeView !== "Analytics" && <section className="topic-section">
+          {activeView !== "Analytics" && <section className="topic-section" aria-labelledby="topic-section-heading">
             <div className="section-heading">
-              <div><h2>Topic progress</h2><p>See where you've put in the work.</p></div>
-              <div className="topic-actions">
+              <div>
+                <h2 id="topic-section-heading">{activeView === "Topics" ? "Choose a topic" : "Topic progress"}</h2>
+                <p>{activeView === "Topics" ? "Select a topic to see only its problems. Your problem IDs and saved progress stay the same." : "See where you've put in the work."}</p>
+              </div>
+              {activeView !== "Topics" && <div className="topic-actions">
                 <button className="text-button" onClick={() => setShowAllTopics((current) => !current)} aria-expanded={showAllTopics}>
                   {showAllTopics ? "Show fewer topics" : `Show all ${topics.length - 1} topics`}
                 </button>
-                <button className="text-button" onClick={() => { setActiveView("Topics"); document.getElementById("problem-list")?.scrollIntoView({ behavior: "smooth" }); }}>Browse problems <span>→</span></button>
-              </div>
+                <button className="text-button" onClick={() => chooseView("Topics")}>Browse problems <span>→</span></button>
+              </div>}
             </div>
             <div className="topic-grid">
-              {(showAllTopics ? topics.slice(1) : topics.slice(1, 7)).map((t, index) => {
-                const topicProblems = problems.filter((p) => p.topic === t);
+              {(activeView === "Topics" ? topics : showAllTopics ? topics.slice(1) : topics.slice(1, 7)).map((t, index) => {
+                const topicProblems = t === "All topics" ? problems : problems.filter((p) => p.topic === t);
                 const topicSolved = topicProblems.filter((p) => p.completed).length;
                 const topicPercent = topicProblems.length ? Math.round(topicSolved / topicProblems.length * 100) : 0;
                 const icons = [Code2, Activity, Target, TrendingUp, BookOpen, ListChecks];
                 const Icon = icons[index % icons.length];
                 return (
-                  <button className="topic-card" key={t} onClick={() => { setTopic(t); setActiveView("Topics"); document.getElementById("problem-list")?.scrollIntoView({ behavior: "smooth" }); }}>
+                  <button
+                    className={`topic-card${activeView === "Topics" && topic === t ? " selected" : ""}`}
+                    key={t}
+                    aria-pressed={topic === t}
+                    onClick={() => { setTopic(t); setActiveView("Topics"); document.getElementById("problem-list")?.scrollIntoView({ behavior: "smooth" }); }}
+                  >
                     <div className={`topic-icon topic-color-${index % 6}`}><Icon size={18} /></div>
                     <div className="topic-card-title">{t}<span>{topicSolved}/{topicProblems.length}</span></div>
                     <div className="topic-track"><div style={{ width: `${topicPercent}%` }} /></div>
@@ -1080,7 +1088,7 @@ export default function App() {
 
           {activeView !== "Analytics" && <section className="problem-section" id="problem-list">
             <div className="section-heading problem-heading">
-              <div><h2>{activeView === "Completed" ? "Completed problems" : activeView === "Topics" ? "Problems by topic" : "LeetCode practice collection"}</h2><p>Search and filter by topic or difficulty, then mark your progress.</p></div>
+              <div><h2>{activeView === "Completed" ? "Completed problems" : activeView === "Topics" ? topic === "All topics" ? "All topic problems" : `${topic} problems` : "LeetCode practice collection"}</h2><p>{activeView === "Topics" && topic !== "All topics" ? `Showing problems in ${topic}.` : "Search and filter by topic or difficulty, then mark your progress."}</p></div>
               <span className="problem-total">{filteredProblems.length} problems</span>
             </div>
             {activeTimerProblem && <div className="active-timer-banner" role="status" aria-live="polite">
