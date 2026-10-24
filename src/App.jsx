@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { Analytics } from "@vercel/analytics/react";
 import AuthScreen from "./AuthScreen";
 import { auth, db } from "./firebase";
 import AnalyticsDashboard from "./AnalyticsDashboard";
@@ -1281,6 +1282,7 @@ export default function App() {
           </div>
         </section>
       </div>}
+      <Analytics />
     </div>
   );
 }
